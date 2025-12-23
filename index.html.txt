@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Teen Patti Mobile Master</title>
+    <style>
+        :root {
+            --bg-dark: #070b0d;
+            --table-felt: #114227;
+            --gold: #ffcc00;
+            --accent-blue: #0095ff;
+            --danger: #ff3b30;
+            --success: #34c759;
+            --glass: rgba(255, 255, 255, 0.08);
+            --warning-red: #ff4444;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-dark); color: white; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* Top Bar */
+        .header {
+            padding: 15px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--glass);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .pot-display { font-size: 20px; font-weight: 800; color: var(--gold); }
+        .btn-settings { background: var(--glass); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 12px; border-radius: 10px; font-size: 18px; }
+
+        /* Table Area */
+        .table-container {
+            flex-grow: 1; position: relative;
+            background: radial-gradient(circle at center, #1a5e3a 0%, #0a2b1a 100%);
+            margin: 10px; border-radius: 150px / 200px;
+            border: 4px solid #333; box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .player-node {
+            position: absolute; width: 85px; text-align: center;
+            transform: translate(-50%, -50%); transition: all 0.3s ease;
+        }
+
+        .avatar-circle {
+            width: 60px; height: 60px; background: #222; border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.2); margin: 0 auto 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 16px; position: relative;
+        }
+
+        /* Active Turn Glow */
+        .active-turn .avatar-circle { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
+
+        /* Low Balance Alert Glow */
+        .low-balance .avatar-circle {
+            border-color: var(--warning-red) !important;
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0px var(--warning-red); }
+            50% { box-shadow: 0 0 15px var(--warning-red); }
+            100% { box-shadow: 0 0 0px var(--warning-red); }
+        }
+
+        .role-tag { position: absolute; bottom: -5px; right: -5px; font-size: 8px; padding: 2px 5px; border-radius: 4px; font-weight: 900; color: black; }
+        .low-tag { position: absolute; top: -5px; left: -5px; background: var(--warning-red); color: white; border-radius: 50%; padding: 2px; font-size: 10px; z-index: 5; }
+
+        /* Controls Panel */
+        .controls-panel { background: #111; padding: 15px 15px 30px; border-top-left-radius: 25px; border-top-right-radius: 25px; }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .btn { border: none; border-radius: 12px; padding: 15px 5px; font-weight: 800; text-transform: uppercase; font-size: 12px; display: flex; flex-direction: column; align-items: center; }
+        .btn span { font-size: 9px; opacity: 0.7; margin-top: 3px; }
+        .btn-pack { background: #222; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-chaal { background: var(--accent-blue); color: white; }
+        .btn-raise { background: var(--success); color: white; }
+        .btn-show { background: var(--gold); color: black; grid-column: span 3; margin-top: 8px; font-size: 15px; display: none; }
+
+        /* Overlays */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(10px); }
+        .modal { background: #1c1c1e; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 25px; padding: 25px; border: 1px solid #333; text-align: center; }
+        .modal input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; font-size: 16px; }
+        .primary-btn { background: var(--gold); color: black; width: 100%; padding: 16px; border-radius: 15px; border: none; font-weight: 700; font-size: 16px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen" class="overlay">
+    <div class="modal">
+        <h2 style="color:var(--gold)">GAME SETUP</h2>
+        <div style="display:flex; gap:10px">
+            <div style="flex:1"><label style="font-size:10px; color:var(--gold)">CHIPS</label><input type="number" id="start-balance" value="1000"></div>
+            <div style="flex:1"><label style="font-size:10px; color:var(--gold)">BOOT</label><input type="number" id="boot-amount" value="10"></div>
+        </div>
+        <div id="player-inputs" style="margin-top:10px">
+            <label style="font-size:10px; color:var(--gold); display:block; text-align:left;">PLAYERS</label>
+            <input type="text" class="player-name" placeholder="Player 1">
+            <input type="text" class="player-name" placeholder="Player 2">
+        </div>
+        <button onclick="addPlayer()" style="background:none; color:var(--accent-blue); border:none; margin: 10px 0; font-weight:600;">+ ADD PLAYER</button>
+        <button class="primary-btn" onclick="initGame()">START GAME</button>
+        <button id="cancel-setup" style="display:none; background:none; border:none; color:var(--danger); margin-top:10px;" onclick="closeSetup()">CANCEL</button>
+    </div>
+</div>
+
+<div id="winner-modal" class="overlay" style="display:none;">
+    <div class="modal"><h2 style="color:var(--gold)">🏆 WHO WON?</h2><div id="winner-list"></div></div>
+</div>
+
+<div class="header">
+    <button class="btn-settings" onclick="openSetup()">⚙️</button>
+    <div class="pot-display" id="pot-val">💰 ₹0</div>
+    <div style="font-size: 10px; color: var(--gold);">STAKE: <span id="st-val">₹0</span></div>
+</div>
+
+<div class="table-container" id="game-table"></div>
+
+<div class="controls-panel">
+    <div class="action-grid">
+        <button class="btn btn-pack" onclick="play('pack')">PACK</button>
+        <button class="btn btn-chaal" id="chaal-btn" onclick="play('chaal')">CHAAL<span id="c-amt">₹0</span></button>
+        <button class="btn btn-raise" id="raise-btn" onclick="play('raise')">RAISE<span id="r-amt">₹0</span></button>
+        <button class="btn btn-show" id="show-btn" onclick="play('show')">SHOW CARDS</button>
+    </div>
+</div>
+
+<script>
+let state = { players: [], pot: 0, stake: 0, turn: 0, boot: 0, active: false };
+
+function addPlayer() {
+    const cont = document.getElementById('player-inputs');
+    if (cont.querySelectorAll('input').length < 6) {
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.className = 'player-name';
+        inp.placeholder = "Player " + (cont.querySelectorAll('input').length + 1);
+        cont.appendChild(inp);
+    }
+}
+
+function openSetup() { 
+    document.getElementById('setup-screen').style.display = 'flex';
+    if(state.players.length > 0) document.getElementById('cancel-setup').style.display = 'block';
+}
+function closeSetup() { document.getElementById('setup-screen').style.display = 'none'; }
+
+function initGame() {
+    const boot = parseInt(document.getElementById('boot-amount').value);
+    const chips = parseInt(document.getElementById('start-balance').value);
+    const names = [...document.querySelectorAll('.player-name')].map(i => i.value.trim()).filter(n => n);
+    if (names.length < 2) return alert("Add at least 2 players");
+    state.boot = boot;
+    state.players = names.map((n, i) => ({ id: i, name: n, bal: chips, seen: false, packed: false }));
+    closeSetup();
+    newRound();
+}
+
+function newRound() {
+    state.active = true; state.stake = state.boot; state.pot = 0;
+    state.players.forEach(p => { p.packed = false; p.seen = false; p.bal -= state.boot; state.pot += state.boot; });
+    state.turn = 0; refreshUI();
+}
+
+function play(act) {
+    if (!state.active) return;
+    let p = state.players[state.turn];
+    let cost = p.seen ? state.stake * 2 : state.stake;
+    if (act === 'pack') p.packed = true;
+    else if (act === 'chaal') { p.bal -= cost; state.pot += cost; }
+    else if (act === 'raise') { let rCost = cost * 2; p.bal -= rCost; state.pot += rCost; state.stake = p.seen ? rCost / 2 : rCost; }
+    else if (act === 'show') { p.bal -= cost; state.pot += cost; state.active = false; openWinnerSelect(); return; }
+
+    const activeCount = state.players.filter(x => !x.packed).length;
+    if (activeCount === 1) { state.active = false; finish(state.players.find(x => !x.packed)); }
+    else { do { state.turn = (state.turn + 1) % state.players.length; } while (state.players[state.turn].packed); refreshUI(); }
+}
+
+function openWinnerSelect() {
+    const active = state.players.filter(p => !p.packed);
+    const list = document.getElementById('winner-list');
+    list.innerHTML = "";
+    active.forEach(p => {
+        const b = document.createElement('button');
+        b.className = "primary-btn"; b.innerText = p.name;
+        b.onclick = () => finish(p);
+        list.appendChild(b);
+    });
+    document.getElementById('winner-modal').style.display = 'flex';
+}
+
+function finish(w) { w.bal += state.pot; document.getElementById('winner-modal').style.display = 'none'; refreshUI(); setTimeout(() => { alert("🏆 " + w.name + " wins!"); newRound(); }, 200); }
+
+function refreshUI() {
+    document.getElementById('pot-val').innerText = "💰 ₹" + state.pot;
+    document.getElementById('st-val').innerText = "₹" + state.stake;
+    const table = document.getElementById('game-table');
+    table.innerHTML = "";
+
+    state.players.forEach((p, i) => {
+        const angle = (i / state.players.length) * (Math.PI * 2) - (Math.PI / 2);
+        const x = 50 + 38 * Math.cos(angle);
+        const y = 50 + 38 * Math.sin(angle);
+        
+        const isLow = p.bal < 200 ? 'low-balance' : '';
+        const div = document.createElement('div');
+        div.className = `player-node ${i === state.turn && !p.packed ? 'active-turn' : ''} ${isLow}`;
+        div.style.left = x + "%"; div.style.top = y + "%";
+        if(p.packed) div.style.opacity = "0.2";
+
+        div.innerHTML = `
+            <div class="avatar-circle" onclick="toggleSeen(${p.id})">
+                ${p.bal < 200 ? '<span class="low-tag">⚠️</span>' : ''}
+                ${p.name.substring(0,2).toUpperCase()}
+                <span class="role-tag" style="background:${p.seen?'#0095ff':'#ffcc00'}">${p.seen?'SEEN':'BLIND'}</span>
+            </div>
+            <div style="font-size:10px; font-weight:700; color:${p.bal < 200 ? 'var(--warning-red)' : 'white'}">₹${p.bal}</div>
+        `;
+        table.appendChild(div);
+    });
+
+    if(state.active) {
+        let cur = state.players[state.turn];
+        let amt = cur.seen ? state.stake * 2 : state.stake;
+        document.getElementById('c-amt').innerText = "₹" + amt;
+        document.getElementById('r-amt').innerText = "₹" + (amt * 2);
+        document.getElementById('show-btn').style.display = state.players.filter(x => !x.packed).length === 2 ? 'flex' : 'none';
+    }
+}
+
+function toggleSeen(id) { if(state.players[id].packed) return; state.players[id].seen = true; refreshUI(); }
+</script>
+</body>
+</html>
