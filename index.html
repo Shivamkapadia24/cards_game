@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cards Game</title>
+    <title>Cards game</title>
     <style>
         :root {
             --bg-dark: #070b0d;
@@ -52,10 +52,8 @@
             font-weight: bold; font-size: 16px; position: relative;
         }
 
-        /* Active Turn Glow */
         .active-turn .avatar-circle { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
 
-        /* Low Balance Alert Glow */
         .low-balance .avatar-circle {
             border-color: var(--warning-red) !important;
             animation: pulse-red 1.5s infinite;
@@ -104,6 +102,7 @@
         <button onclick="addPlayer()" style="background:none; color:var(--accent-blue); border:none; margin: 10px 0; font-weight:600;">+ ADD PLAYER</button>
         <button class="primary-btn" onclick="initGame()">START GAME</button>
         <button id="cancel-setup" style="display:none; background:none; border:none; color:var(--danger); margin-top:10px;" onclick="closeSetup()">CANCEL</button>
+        <button onclick="clearSavedData()" style="background:none; color:white; border:none; font-size:10px; margin-top:20px; opacity:0.5;">Clear All Data</button>
     </div>
 </div>
 
@@ -130,6 +129,28 @@
 
 <script>
 let state = { players: [], pot: 0, stake: 0, turn: 0, boot: 0, active: false };
+
+// --- AUTO-SAVE LOGIC ---
+function saveToStorage() {
+    localStorage.setItem('tp_mobile_master_state', JSON.stringify(state));
+}
+
+function clearSavedData() {
+    if(confirm("This will delete all players and balances. Continue?")) {
+        localStorage.removeItem('tp_mobile_master_state');
+        location.reload();
+    }
+}
+
+// Load data on start
+window.onload = function() {
+    const saved = localStorage.getItem('tp_mobile_master_state');
+    if (saved) {
+        state = JSON.parse(saved);
+        document.getElementById('setup-screen').style.display = 'none';
+        refreshUI();
+    }
+};
 
 function addPlayer() {
     const cont = document.getElementById('player-inputs');
@@ -161,7 +182,9 @@ function initGame() {
 function newRound() {
     state.active = true; state.stake = state.boot; state.pot = 0;
     state.players.forEach(p => { p.packed = false; p.seen = false; p.bal -= state.boot; state.pot += state.boot; });
-    state.turn = 0; refreshUI();
+    state.turn = 0; 
+    saveToStorage();
+    refreshUI();
 }
 
 function play(act) {
@@ -175,7 +198,7 @@ function play(act) {
 
     const activeCount = state.players.filter(x => !x.packed).length;
     if (activeCount === 1) { state.active = false; finish(state.players.find(x => !x.packed)); }
-    else { do { state.turn = (state.turn + 1) % state.players.length; } while (state.players[state.turn].packed); refreshUI(); }
+    else { do { state.turn = (state.turn + 1) % state.players.length; } while (state.players[state.turn].packed); saveToStorage(); refreshUI(); }
 }
 
 function openWinnerSelect() {
@@ -191,7 +214,13 @@ function openWinnerSelect() {
     document.getElementById('winner-modal').style.display = 'flex';
 }
 
-function finish(w) { w.bal += state.pot; document.getElementById('winner-modal').style.display = 'none'; refreshUI(); setTimeout(() => { alert("🏆 " + w.name + " wins!"); newRound(); }, 200); }
+function finish(w) { 
+    w.bal += state.pot; 
+    document.getElementById('winner-modal').style.display = 'none'; 
+    saveToStorage();
+    refreshUI(); 
+    setTimeout(() => { alert("🏆 " + w.name + " wins!"); newRound(); }, 200); 
+}
 
 function refreshUI() {
     document.getElementById('pot-val').innerText = "💰 ₹" + state.pot;
@@ -230,8 +259,7 @@ function refreshUI() {
     }
 }
 
-function toggleSeen(id) { if(state.players[id].packed) return; state.players[id].seen = true; refreshUI(); }
+function toggleSeen(id) { if(state.players[id].packed) return; state.players[id].seen = true; saveToStorage(); refreshUI(); }
 </script>
 </body>
 </html>
-
