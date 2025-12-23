@@ -69,9 +69,9 @@
         .low-tag { position: absolute; top: -5px; left: -5px; background: var(--warning-red); color: white; border-radius: 50%; padding: 2px; font-size: 10px; z-index: 5; }
 
         /* Controls Panel */
-        .controls-panel { background: #111; padding: 15px 15px 30px; border-top-left-radius: 25px; border-top-right-radius: 25px; }
+        .controls-panel { background: #111; padding: 15px 15px 15px; border-top-left-radius: 25px; border-top-right-radius: 25px; z-index: 10; }
         .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .btn { border: none; border-radius: 12px; padding: 15px 5px; font-weight: 800; text-transform: uppercase; font-size: 12px; display: flex; flex-direction: column; align-items: center; }
+        .btn { border: none; border-radius: 12px; padding: 12px 2px; font-weight: 800; text-transform: uppercase; font-size: 11px; display: flex; flex-direction: column; align-items: center; }
         .btn span { font-size: 9px; opacity: 0.7; margin-top: 3px; }
         .btn-pack { background: #222; color: var(--danger); border: 1px solid var(--danger); }
         .btn-chaal { background: var(--accent-blue); color: white; }
@@ -263,3 +263,4 @@ function toggleSeen(id) { if(state.players[id].packed) return; state.players[id]
 </script>
 </body>
 </html>
+
