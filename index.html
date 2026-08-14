@@ -38,6 +38,9 @@
         }
         .pot-display { font-size: 20px; font-weight: 800; color: var(--gold); }
         .btn-settings { background: var(--glass); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 12px; border-radius: 10px; font-size: 18px; }
+        .header-left { display: flex; align-items: center; gap: 8px; }
+        .btn-undo { background: var(--glass); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 12px; border-radius: 10px; font-size: 18px; }
+        .btn-undo:disabled { opacity: 0.3; }
 
         /* Table Area */
 .table-container {
@@ -157,7 +160,10 @@
 </div>
 
 <div class="header">
-    <button class="btn-settings" onclick="openSetup()">⚙️</button>
+    <div class="header-left">
+        <button class="btn-undo" id="undo-btn" onclick="undoLast()" disabled>↩️</button>
+        <button class="btn-settings" onclick="openSetup()">⚙️</button>
+    </div>
     <div class="pot-display" id="pot-val">💰 ₹0</div>
     <div style="font-size: 10px; color: var(--gold);">STAKE: <span id="st-val">₹0</span></div>
 </div>
@@ -175,6 +181,7 @@
 
 <script>
 let state = { players: [], pot: 0, stake: 0, turn: 0, boot: 0, active: false };
+let history = [];
 
 // --- AUTO-SAVE LOGIC ---
 function saveToStorage() {
@@ -200,7 +207,7 @@ window.onload = function() {
 
 function addPlayer() {
     const cont = document.getElementById('player-inputs');
-    if (cont.querySelectorAll('input').length < 6) {
+    if (cont.querySelectorAll('input').length < 10) {
         const inp = document.createElement('input');
         inp.type = 'text'; inp.className = 'player-name';
         inp.placeholder = "Player " + (cont.querySelectorAll('input').length + 1);
@@ -233,8 +240,29 @@ function newRound() {
     refreshUI();
 }
 
+// --- UNDO LOGIC ---
+function pushHistory() {
+    history.push(JSON.stringify(state));
+    if (history.length > 20) history.shift();
+    updateUndoBtn();
+}
+
+function undoLast() {
+    if (history.length === 0) return;
+    state = JSON.parse(history.pop());
+    document.getElementById('winner-modal').style.display = 'none';
+    saveToStorage();
+    refreshUI();
+    updateUndoBtn();
+}
+
+function updateUndoBtn() {
+    document.getElementById('undo-btn').disabled = history.length === 0;
+}
+
 function play(act) {
     if (!state.active) return;
+    pushHistory();
     let p = state.players[state.turn];
     let cost = p.seen ? state.stake * 2 : state.stake;
     if (act === 'pack') p.packed = true;
@@ -305,16 +333,7 @@ function refreshUI() {
     }
 }
 
-function toggleSeen(id) { if(state.players[id].packed) return; state.players[id].seen = true; saveToStorage(); refreshUI(); }
+function toggleSeen(id) { if(state.players[id].packed) return; pushHistory(); state.players[id].seen = true; saveToStorage(); refreshUI(); }
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
